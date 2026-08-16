@@ -1,0 +1,19 @@
+{
+  "name": "nexasphere-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Consolidated micro-frontend repository for NexaSphere research prototype",
+  "scripts": {
+    "dev": "turbo run dev --concurrency=15",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "node --test packages/auth/tests/auth.test.js packages/utils/tests/utils.test.js services/api/tests/api.test.js",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "turbo": "^1.13.0",
+    "typescript": "^5.3.3"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

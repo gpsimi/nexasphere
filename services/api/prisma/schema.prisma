@@ -1,0 +1,92 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id         String     @id @default(uuid())
+  email      String     @unique
+  password   String
+  name       String
+  role       String
+  department String
+  status     String     @default("Active")
+  createdAt  DateTime   @default(now())
+  AuditLog   AuditLog[]
+}
+
+model Customer {
+  id           String        @id @default(uuid())
+  code         String        @unique
+  name         String
+  region       String
+  status       String        @default("Active")
+  balance      Float         @default(0.0)
+  orders       Order[]
+  transactions Transaction[]
+  invoices     Invoice[]
+}
+
+model Order {
+  id         String   @id @default(uuid())
+  reference  String   @unique
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  amount     Float
+  status     String   @default("Pending")
+  date       DateTime @default(now())
+}
+
+model Product {
+  id          String @id @default(uuid())
+  sku         String @unique
+  name        String
+  description String
+  quantity    Int
+  status      String @default("In Stock")
+  safetyLimit Int
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  reference     String   @unique
+  date          DateTime @default(now())
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  amount        Float
+  type          String
+  paymentMethod String
+  status        String   @default("Completed")
+}
+
+model Invoice {
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique
+  customerId    String
+  customer      Customer @relation(fields: [customerId], references: [id])
+  amount        Float
+  dueDate       DateTime
+  status        String   @default("Unpaid")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  details   String
+  timestamp DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  message   String
+  type      String   @default("Information")
+  read      Boolean  @default(false)
+  timestamp DateTime @default(now())
+}
