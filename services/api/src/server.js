@@ -4,7 +4,8 @@ const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const { PrismaClient } = require('@prisma/client');
 
-dotenv.config();
+const path = require('path');
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -335,6 +336,16 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// Safety error handlers for resilient uptime
+process.on('unhandledRejection', (reason) => {
+  console.warn('[API Warning] Handled async exception:', reason?.message || reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.warn('[API Warning] Handled uncaught exception:', err?.message || err);
+});
+
 app.listen(PORT, () => {
   console.log(`NexaSphere Enterprise API server running on port ${PORT}`);
 });
+
