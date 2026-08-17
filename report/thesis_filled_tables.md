@@ -332,3 +332,35 @@ A comparative architectural evaluation of major frontend integration paradigms a
 | **Browser Compatibility & Standards** | **Universal (100%)**: Standard ES2020+ JavaScript, HTTP proxy rewrites, supported natively across Chrome, Safari, Firefox, Edge | **Universal (100%)**: Transpiled down to standard JavaScript compatible with all target browser baselines | **Universal (100%)**: Pure semantic HTML5 stream over HTTP/2; optimal for SEO and zero-JS progressive enhancement | **Modern Browsers (HTML5 Specs)**: Supported on all evergreen browsers via W3C Custom Elements and Shadow DOM v1 specs |
 
 > **Strategic Recommendation**: For large-scale enterprise SaaS requiring independent multi-team releases, strong fault isolation, and rich single-page responsiveness, **Runtime Composition (Next.js Multi-Zones)** offers the optimal balance of deployment agility, developer experience, and runtime efficiency.
+
+---
+
+## 6.4.14 Development of an Architectural Decision Framework
+
+To prevent indiscriminate adoption and guide enterprise engineering leaders, the proposed decision framework evaluates eight organizational and technical indicators to determine the optimal frontend architecture model:
+
+### Architectural Decision Evaluation Matrix
+
+| Evaluation Factor | Low Threshold (Score: 1) | Medium Threshold (Score: 2) | High Threshold (Score: 3) | Weight | Impact on Micro-Frontend Adoption |
+| :--- | :--- | :--- | :--- | :---: | :--- |
+| **Application Size** | Single functional domain (< 10 views, < 10k LoC) | 2–4 interconnected business domains (10–30 views) | Large multi-domain enterprise platform (> 30 views, > 50k LoC) | **High** | Higher scale justifies decoupling domain codebases |
+| **Number of Dev Teams** | Single team (1–5 engineers) | 2–3 autonomous feature teams (6–15 engineers) | $\ge 4$ cross-functional squads ($> 15$ engineers) | **Critical** | Conway's Law: multi-team autonomy requires decoupled boundaries |
+| **Release Frequency** | Monthly or ad-hoc batch releases | Bi-weekly sprint deployments | Continuous daily or multi-deploy per day per domain | **High** | Micro-frontends eliminate centralized release bottlenecks |
+| **Domain Independence** | Tightly coupled state and shared workflows | Moderate domain boundaries with some shared UI flows | Highly distinct business domains (e.g. Finance, Inventory, Logistics) | **Critical** | Clean business domain boundaries prevent cross-boundary chatter |
+| **Need for Independent Deployment** | Whole-app downtime or unified deployment acceptable | Staged deployments preferred but coordination feasible | Strict zero-downtime requirement; independent CI/CD pipelines per squad | **Critical** | Core justification for micro-frontend runtime isolation |
+| **Current Frontend Complexity** | Low technical debt; fast CI build (< 2 mins) | Moderate build times (2–10 mins); occasional merge locks | High build times (> 15 mins); frequent merge conflicts; brittle tests | **Medium** | Micro-frontends partition complexity into isolated sub-repos |
+| **Operational & CI/CD Maturity** | Basic hosting; manual or simple deployment scripts | Standard automated CI/CD; containerized services | Advanced multi-zone routing, automated canary rollouts, distributed telemetry | **High** | Prerequisite to successfully manage multiple running remotes |
+| **Performance Sensitivity** | Low latency tolerance; minimal initial payload critical | Standard enterprise SaaS SLA (< 2.5s initial load) | Core Web Vitals critical; sub-100ms warm transitions acceptable | **Medium** | Micro-frontends allow fine-grained code splitting per domain |
+
+---
+
+### Decision Scoring & Architecture Classification
+
+$$\text{Decision Index} = \sum_{i=1}^{8} \text{Factor Score}_i$$
+
+| Overall Score Range | Architecture Classification | Recommended Architecture Model | Key Characteristics |
+| :---: | :--- | :--- | :--- |
+| **8 – 13 Points** | **Low Need** | **Conventional Frontend (Monolithic SPA)** | Single repository, unified release pipeline, lowest operational overhead, ideal for single-team applications. |
+| **14 – 19 Points** | **Moderate Need** | **Selective Micro-Frontend / Modular Monolith** | Monorepo with shared packages (`@nexasphere/ui`), domain modules, and selective sub-app routing. |
+| **20 – 24 Points** | **High Need** | **Full Micro-Frontend Architecture (NexaSphere Multi-Zones Model)** | Autonomous Next.js Multi-Zones, independent CI/CD matrix, runtime fault containment (`MfeErrorBoundary`), and unified gateway shell. |
+
