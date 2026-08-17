@@ -1,162 +1,298 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Table, TableHeader, TableBody, TableRow, TableCell, TableHeadCell } from '@nexasphere/ui';
-import { Search, Plus, AlertTriangle, Package, DollarSign } from 'lucide-react';
-import { EventBus } from '@nexasphere/utils';
+import { 
+  Card, CardHeader, CardTitle, CardDescription, 
+  CardContent, Badge, Button, Input, Select, Modal, 
+  Table, TableHeader, TableBody, TableRow, TableCell, 
+  TableHeadCell, Alert, StatusDot 
+} from '@nexasphere/ui';
+import { 
+  Package, AlertTriangle, CheckCircle2, Plus, 
+  Search, RefreshCw, ShoppingCart, ArrowDown, ArrowUpRight
+} from 'lucide-react';
+import { apiClient, EventBus } from '@nexasphere/utils';
 
 export default function App() {
   const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [reorderModal, setReorderModal] = useState(null);
+  const [reorderQty, setReorderQty] = useState('50');
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get('/products');
+      if (res.data && res.data.length > 0) {
+        setProducts(res.data);
+      } else {
+        setProducts([
+          { id: '1', name: 'Reinforced Steel Rods 16mm', sku: 'SKU-STL-001', category: 'Construction', stock: 450, reorderLevel: 100, unitPrice: 8500, status: 'Healthy' },
+          { id: '2', name: 'Industrial Copper Wire 2.5mm', sku: 'SKU-CPR-002', category: 'Electrical', stock: 8, reorderLevel: 25, unitPrice: 14200, status: 'Low Stock' },
+          { id: '3', name: 'Hydraulic Valve Couplings 2"', sku: 'SKU-HYD-003', category: 'Mechanical', stock: 120, reorderLevel: 30, unitPrice: 28000, status: 'Healthy' },
+          { id: '4', name: 'Portland Composite Cement 50kg', sku: 'SKU-CMT-004', category: 'Construction', stock: 1200, reorderLevel: 200, unitPrice: 6200, status: 'Healthy' }
+        ]);
+      }
+    } catch (err) {
+      setProducts([
+        { id: '1', name: 'Reinforced Steel Rods 16mm', sku: 'SKU-STL-001', category: 'Construction', stock: 450, reorderLevel: 100, unitPrice: 8500, status: 'Healthy' },
+        { id: '2', name: 'Industrial Copper Wire 2.5mm', sku: 'SKU-CPR-002', category: 'Electrical', stock: 8, reorderLevel: 25, unitPrice: 14200, status: 'Low Stock' },
+        { id: '3', name: 'Hydraulic Valve Couplings 2"', sku: 'SKU-HYD-003', category: 'Mechanical', stock: 120, reorderLevel: 30, unitPrice: 28000, status: 'Healthy' },
+        { id: '4', name: 'Portland Composite Cement 50kg', sku: 'SKU-CMT-004', category: 'Construction', stock: 1200, reorderLevel: 200, unitPrice: 6200, status: 'Healthy' }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setProducts([
-      { id: '1', sku: 'SKU-STEEL-01', name: 'Premium Steel Pipes', desc: 'SMLS steel pipes 12inch', qty: 12, status: 'Low Stock', safetyLimit: 20 },
-      { id: '2', sku: 'SKU-VALVE-99', name: 'Control Gate Valves', desc: 'Threaded heavy gate valve 2inch', qty: 45, status: 'In Stock', safetyLimit: 15 },
-      { id: '3', sku: 'SKU-CABLE-05', name: 'Copper Core Power Cable', desc: 'Armored copper core cable 3core', qty: 150, status: 'In Stock', safetyLimit: 50 },
-      { id: '4', sku: 'SKU-HELMET-02', name: 'Safety Hardhats (Yellow)', desc: 'Industrial standard ANSI helmet', qty: 4, status: 'Critical Low', safetyLimit: 25 },
-      { id: '5', sku: 'SKU-GLOVE-01', name: 'Welding Hand Gloves', desc: 'Heavy leather welding protection', qty: 82, status: 'In Stock', safetyLimit: 30 }
-    ]);
+    fetchProducts();
   }, []);
 
-  const handleReorder = (prodId) => {
+  const handleReorder = async (e) => {
+    e.preventDefault();
+    if (!reorderModal) return;
+
+    const qty = parseInt(reorderQty, 10);
+    try {
+      await apiClient.post(`/products/${reorderModal.id}/reorder`, { quantity: qty });
+    } catch (e) {
+      // offline fallback
+    }
+
     setProducts(prev => prev.map(p => {
-      if (p.id === prodId) {
-        const orderQty = p.safetyLimit * 2;
-        const newQty = p.qty + orderQty;
-        
-        EventBus.publish('NOTIFICATION_RECEIVED', {
-          message: `Stock reorder sent: SKU ${p.sku} (Quantity: +${orderQty})`,
-          type: 'Success'
-        });
-        
-        return { ...p, qty: newQty, status: 'In Stock' };
+      if (p.id === reorderModal.id) {
+        const nextStock = p.stock + qty;
+        return {
+          ...p,
+          stock: nextStock,
+          status: nextStock > p.reorderLevel ? 'Healthy' : 'Low Stock'
+        };
       }
       return p;
     }));
+
+    EventBus.publish('NOTIFICATION_RECEIVED', {
+      message: `Stock requisition sent: +${qty} units of ${reorderModal.name}`,
+      type: 'Success'
+    });
+
+    setReorderModal(null);
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const lowStockItems = products.filter(p => p.stock <= p.reorderLevel);
+  const totalValuation = products.reduce((acc, p) => acc + (p.stock * p.unitPrice), 0);
 
-  const lowStockCount = products.filter(p => p.qty <= p.safetyLimit).length;
+  const filtered = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase());
+    const matchesCat = categoryFilter === 'ALL' || p.category === categoryFilter;
+    return matchesSearch && matchesCat;
+  });
 
   return React.createElement(
     'div',
-    { className: 'space-y-6' },
+    { className: 'space-y-6 max-w-7xl mx-auto' },
     
-    // Summary Cards
+    // Header
     React.createElement(
       'div',
-      { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      { className: 'flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-card' },
       React.createElement(
-        Card,
-        { className: 'p-4' },
-        React.createElement('span', { className: 'text-xs text-neutral-500 font-semibold' }, 'Total SKU Entries'),
-        React.createElement('h3', { className: 'text-2xl font-bold text-neutral-900 mt-1' }, products.length)
+        'div',
+        { className: 'space-y-1' },
+        React.createElement('h1', { className: 'text-2xl font-extrabold text-neutral-900 tracking-tight' }, 'Inventory & Warehouse Stock Control'),
+        React.createElement('p', { className: 'text-xs text-neutral-500' }, 'Real-time stock level monitoring, automated replenishment, and product valuation.')
       ),
       React.createElement(
-        Card,
-        { className: 'p-4' },
-        React.createElement('span', { className: 'text-xs text-neutral-500 font-semibold' }, 'Low Stock Warnings'),
-        React.createElement('h3', { className: 'text-2xl font-bold text-amber-700 mt-1' }, lowStockCount)
-      ),
-      React.createElement(
-        Card,
-        { className: 'p-4' },
-        React.createElement('span', { className: 'text-xs text-neutral-500 font-semibold' }, 'Total Stock Value'),
-        React.createElement('h3', { className: 'text-2xl font-bold text-primary-700 mt-1' }, '₦18.4M')
+        'div',
+        { className: 'flex items-center space-x-3' },
+        React.createElement(Button, { variant: 'outline', size: 'sm', onClick: fetchProducts, icon: RefreshCw }, 'Refresh'),
+        React.createElement(Button, { variant: 'primary', size: 'sm', onClick: () => alert('Mock add product modal'), icon: Plus }, 'Add Product')
       )
     ),
 
-    // Product stock list table
+    // Low Stock Alert Banner
+    lowStockItems.length > 0 && React.createElement(
+      Alert,
+      {
+        variant: 'warning',
+        title: `${lowStockItems.length} Product Requires Immediate Replenishment`,
+        action: React.createElement(
+          Button,
+          {
+            variant: 'secondary',
+            size: 'xs',
+            onClick: () => {
+              setReorderModal(lowStockItems[0]);
+              setReorderQty('50');
+            }
+          },
+          'Reorder Now'
+        )
+      },
+      `"${lowStockItems[0].name}" has fallen to ${lowStockItems[0].stock} units (Threshold: ${lowStockItems[0].reorderLevel} units).`
+    ),
+
+    // Inventory Metrics Grid
+    React.createElement(
+      'div',
+      { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4' },
+      [
+        { label: 'Catalog SKU Count', value: products.length, icon: Package, color: 'text-blue-600 bg-blue-50' },
+        { label: 'Total Valuation', value: `₦${(totalValuation / 1000000).toFixed(2)}M`, icon: ArrowUpRight, color: 'text-emerald-600 bg-emerald-50' },
+        { label: 'Low Stock Alerts', value: lowStockItems.length, icon: AlertTriangle, color: 'text-amber-600 bg-amber-50' },
+        { label: 'Warehouse Capacity', value: '78.4%', icon: CheckCircle2, color: 'text-indigo-600 bg-indigo-50' }
+      ].map((k, idx) => React.createElement(
+        Card,
+        { key: idx, className: 'p-4' },
+        React.createElement(
+          'div',
+          { className: 'flex items-center justify-between mb-2' },
+          React.createElement('span', { className: 'text-xs font-bold text-neutral-500 uppercase tracking-wider' }, k.label),
+          React.createElement('div', { className: `h-9 w-9 rounded-xl flex items-center justify-center ${k.color}` }, React.createElement(k.icon, { className: 'h-5 w-5' }))
+        ),
+        React.createElement('div', { className: 'text-2xl font-extrabold text-neutral-900' }, k.value)
+      ))
+    ),
+
+    // Main Catalog Table
     React.createElement(
       Card,
       null,
       React.createElement(
-        CardHeader,
-        { className: 'flex justify-between items-center' },
-        React.createElement(CardTitle, null, 'Stock Registry'),
+        'div',
+        { className: 'p-4 border-b border-neutral-100 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-neutral-50/50' },
+        React.createElement(Input, {
+          placeholder: 'Search product name or SKU...',
+          icon: Search,
+          value: search,
+          onChange: (e) => setSearch(e.target.value),
+          className: 'mb-0 w-full md:w-80'
+        }),
         React.createElement(
-          'div',
-          { className: 'relative max-w-xs w-64' },
-          React.createElement(Search, { className: 'absolute left-2.5 top-2.5 h-4 w-4 text-neutral-400' }),
-          React.createElement('input', {
-            type: 'text',
-            placeholder: 'Search SKU or name...',
-            value: searchTerm,
-            onChange: (e) => setSearchTerm(e.target.value),
-            className: 'w-full pl-8 pr-3 py-1.5 text-xs bg-neutral-50 border rounded border-neutral-200 focus:outline-none'
-          })
+          'select',
+          {
+            value: categoryFilter,
+            onChange: (e) => setCategoryFilter(e.target.value),
+            className: 'px-3 py-2 text-xs font-semibold bg-white border border-neutral-300 rounded-lg text-neutral-700 focus:outline-none focus:ring-2 focus:ring-secondary-500/20'
+          },
+          React.createElement('option', { value: 'ALL' }, 'All Categories'),
+          React.createElement('option', { value: 'Construction' }, 'Construction'),
+          React.createElement('option', { value: 'Electrical' }, 'Electrical'),
+          React.createElement('option', { value: 'Mechanical' }, 'Mechanical')
         )
       ),
+
       React.createElement(
-        CardContent,
-        null,
+        Table,
+        { className: 'border-0 rounded-none shadow-none' },
         React.createElement(
-          Table,
+          TableHeader,
           null,
           React.createElement(
-            TableHeader,
+            TableRow,
             null,
-            React.createElement(
-              TableRow,
-              null,
-              React.createElement(TableHeadCell, null, 'SKU Code'),
-              React.createElement(TableHeadCell, null, 'Product Name'),
-              React.createElement(TableHeadCell, null, 'Quantity in Stock'),
-              React.createElement(TableHeadCell, null, 'Safety Limit'),
-              React.createElement(TableHeadCell, null, 'Status'),
-              React.createElement(TableHeadCell, null, 'Actions')
-            )
-          ),
-          React.createElement(
-            TableBody,
-            null,
-            filteredProducts.map(p => {
-              const isLow = p.qty <= p.safetyLimit;
-              const isCritical = p.qty < p.safetyLimit / 2;
-              
-              return React.createElement(
-                TableRow,
-                { key: p.id },
-                React.createElement(TableCell, { className: 'font-semibold' }, p.sku),
-                React.createElement(
-                  TableCell,
-                  null,
-                  React.createElement('div', { className: 'flex flex-col' },
-                    React.createElement('span', { className: 'font-medium text-neutral-800 text-sm' }, p.name),
-                    React.createElement('span', { className: 'text-neutral-500 text-xs' }, p.desc)
-                  )
-                ),
-                React.createElement(TableCell, { className: 'font-bold' }, p.qty),
-                React.createElement(TableCell, null, p.safetyLimit),
-                React.createElement(
-                  TableCell,
-                  null,
-                  React.createElement(
-                    Badge,
-                    { 
-                      variant: isCritical ? 'error' : isLow ? 'warning' : 'success',
-                      className: 'text-xxs px-1.5'
-                    },
-                    p.status
-                  )
-                ),
-                React.createElement(
-                  TableCell,
-                  null,
-                  isLow && React.createElement(
-                    Button,
-                    { variant: 'outline', size: 'sm', className: 'text-xxs px-2 py-1', onClick: () => handleReorder(p.id) },
-                    'Trigger Reorder'
-                  )
-                )
-              );
-            })
+            React.createElement(TableHeadCell, null, 'Product & SKU'),
+            React.createElement(TableHeadCell, null, 'Category'),
+            React.createElement(TableHeadCell, null, 'Stock Units'),
+            React.createElement(TableHeadCell, null, 'Unit Price'),
+            React.createElement(TableHeadCell, null, 'Asset Valuation'),
+            React.createElement(TableHeadCell, null, 'Status'),
+            React.createElement(TableHeadCell, { className: 'text-right' }, 'Action')
           )
+        ),
+        React.createElement(
+          TableBody,
+          null,
+          filtered.map(p => React.createElement(
+            TableRow,
+            { key: p.id },
+            React.createElement(
+              TableCell,
+              null,
+              React.createElement('span', { className: 'font-bold text-neutral-900 block text-xs' }, p.name),
+              React.createElement('span', { className: 'font-mono text-[10px] text-neutral-400' }, p.sku)
+            ),
+            React.createElement(TableCell, null, React.createElement(Badge, { variant: 'neutral' }, p.category)),
+            React.createElement(
+              TableCell,
+              null,
+              React.createElement(
+                'div',
+                { className: 'flex items-center space-x-2' },
+                React.createElement('span', { className: `font-bold text-xs ${p.stock <= p.reorderLevel ? 'text-rose-600 font-extrabold' : 'text-neutral-800'}` }, `${p.stock} units`),
+                p.stock <= p.reorderLevel && React.createElement(AlertTriangle, { className: 'h-3.5 w-3.5 text-amber-500' })
+              )
+            ),
+            React.createElement(TableCell, null, React.createElement('span', { className: 'text-xs text-neutral-700 font-medium' }, `₦${p.unitPrice.toLocaleString()}`)),
+            React.createElement(TableCell, null, React.createElement('span', { className: 'text-xs font-bold text-neutral-900' }, `₦${(p.stock * p.unitPrice).toLocaleString()}`)),
+            React.createElement(
+              TableCell,
+              null,
+              React.createElement(
+                Badge,
+                {
+                  variant: p.status === 'Healthy' ? 'success' : 'warning',
+                  dot: true
+                },
+                p.status
+              )
+            ),
+            React.createElement(
+              TableCell,
+              { className: 'text-right' },
+              React.createElement(
+                Button,
+                {
+                  variant: p.stock <= p.reorderLevel ? 'secondary' : 'outline',
+                  size: 'xs',
+                  icon: ShoppingCart,
+                  onClick: () => {
+                    setReorderModal(p);
+                    setReorderQty('50');
+                  }
+                },
+                'Reorder'
+              )
+            )
+          ))
+        )
+      )
+    ),
+
+    // Reorder Stock Modal
+    React.createElement(
+      Modal,
+      {
+        isOpen: !!reorderModal,
+        onClose: () => setReorderModal(null),
+        title: `Reorder Stock: ${reorderModal?.name || ''}`,
+        description: `Current Stock: ${reorderModal?.stock || 0} units | Reorder Threshold: ${reorderModal?.reorderLevel || 0} units`
+      },
+      React.createElement(
+        'form',
+        { onSubmit: handleReorder, className: 'space-y-4' },
+        React.createElement(Input, {
+          label: 'Replenishment Quantity (Units)',
+          type: 'number',
+          value: reorderQty,
+          onChange: (e) => setReorderQty(e.target.value),
+          required: true,
+          min: '1'
+        }),
+        React.createElement(
+          'div',
+          { className: 'p-3 bg-neutral-50 rounded-lg text-xs space-y-1 text-neutral-600' },
+          React.createElement('div', { className: 'flex justify-between' }, React.createElement('span', null, 'Unit Cost:'), React.createElement('span', { className: 'font-bold' }, `₦${reorderModal?.unitPrice.toLocaleString()}`)),
+          React.createElement('div', { className: 'flex justify-between' }, React.createElement('span', null, 'Estimated Total Reorder Cost:'), React.createElement('span', { className: 'font-bold text-neutral-900' }, `₦${((parseInt(reorderQty, 10) || 0) * (reorderModal?.unitPrice || 0)).toLocaleString()}`))
+        ),
+        React.createElement(
+          'div',
+          { className: 'flex justify-end space-x-3 pt-4 border-t border-neutral-100' },
+          React.createElement(Button, { type: 'button', variant: 'outline', onClick: () => setReorderModal(null) }, 'Cancel'),
+          React.createElement(Button, { type: 'submit', variant: 'primary' }, 'Confirm Purchase Order')
         )
       )
     )

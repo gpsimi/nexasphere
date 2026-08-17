@@ -1,140 +1,213 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Badge, Button, Table, TableHeader, TableBody, TableRow, TableCell, TableHeadCell } from '@nexasphere/ui';
-import { Download, FileText, Filter, Calendar } from 'lucide-react';
+import { 
+  Card, CardHeader, CardTitle, CardDescription, 
+  CardContent, Badge, Button, Input, Select, 
+  Table, TableHeader, TableBody, TableRow, TableCell, 
+  TableHeadCell, Alert, Spinner 
+} from '@nexasphere/ui';
+import { 
+  FileText, Download, Filter, Calendar, 
+  CheckCircle2, Printer, BarChart2, PieChart, RefreshCw
+} from 'lucide-react';
 import { EventBus } from '@nexasphere/utils';
 
 export default function App() {
-  const [selectedDomain, setSelectedDomain] = useState('All');
-  const [loading, setLoading] = useState(false);
+  const [dateRange, setDateRange] = useState('30D');
+  const [department, setDepartment] = useState('ALL');
+  const [reportType, setReportType] = useState('FINANCIAL_SUMMARY');
+  const [generating, setGenerating] = useState(false);
 
-  const reports = [
-    { id: '1', title: 'Q3 Financial Income Statement', domain: 'Finance', generatedBy: 'Kunle Adeleke', date: '2026-08-14', size: '1.2 MB' },
-    { id: '2', title: 'Operations Order Fulfilment Summary', domain: 'Operations', generatedBy: 'Tunde Bakare', date: '2026-08-13', size: '840 KB' },
-    { id: '3', title: 'Safety Reorder Inventory Alert Sheet', domain: 'Inventory', generatedBy: 'Chinedu Okafor', date: '2026-08-12', size: '420 KB' },
-    { id: '4', title: 'Enterprise Security User Audit Log', domain: 'Users', generatedBy: 'Godspower Similoluwa', date: '2026-08-10', size: '3.4 MB' }
-  ];
-
-  const handleDownload = (title, format) => {
-    setLoading(true);
+  const handleGenerate = () => {
+    setGenerating(true);
     setTimeout(() => {
-      setLoading(false);
-      
-      // Toast notification over event bus
+      setGenerating(false);
       EventBus.publish('NOTIFICATION_RECEIVED', {
-        message: `Downloaded: ${title} (${format})`,
+        message: 'Consolidated report generated successfully.',
         type: 'Success'
       });
-      alert(`Simulating download of "${title}" as ${format}`);
-    }, 800);
+    }, 500);
   };
 
-  const filteredReports = reports.filter(r => selectedDomain === 'All' || r.domain === selectedDomain);
+  const handleExport = (format) => {
+    EventBus.publish('NOTIFICATION_RECEIVED', {
+      message: `Exporting ${reportType} report as ${format}...`,
+      type: 'Information'
+    });
+  };
+
+  const reportData = [
+    { domain: 'Finance & Invoicing', records: '1,420 Txns', volume: '₦24.85M', variance: '+12.4%', status: 'Audited' },
+    { domain: 'Operations & Logistics', records: '1,248 Orders', volume: '₦18.45M', variance: '+8.1%', status: 'Audited' },
+    { domain: 'Inventory & Stock', records: '4 Products', volume: '₦4.52M', variance: 'Optimal', status: 'Audited' },
+    { domain: 'Administration & RBAC', records: '6 Accounts', volume: '100% Policy', variance: '0 Breaches', status: 'Compliant' }
+  ];
 
   return React.createElement(
     'div',
-    { className: 'space-y-6' },
+    { className: 'space-y-6 max-w-7xl mx-auto' },
     
-    // Overview Report Controls
+    // Header
     React.createElement(
       'div',
-      { className: 'flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-white p-4 border border-neutral-200 rounded shadow-sm' },
+      { className: 'flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-neutral-200/80 shadow-card' },
       React.createElement(
         'div',
-        { className: 'flex items-center space-x-2' },
-        React.createElement(Calendar, { className: 'h-5 w-5 text-neutral-400' }),
-        React.createElement('span', { className: 'text-xs text-neutral-700 font-semibold' }, 'Fiscal Period: Q3 2026 (Aug 1 - Oct 31)')
+        { className: 'space-y-1' },
+        React.createElement('h1', { className: 'text-2xl font-extrabold text-neutral-900 tracking-tight' }, 'Enterprise Consolidated Reports'),
+        React.createElement('p', { className: 'text-xs text-neutral-500' }, 'Aggregate business intelligence and export regulatory compliance audits across all 8 micro-frontends.')
       ),
       React.createElement(
         'div',
         { className: 'flex items-center space-x-3' },
-        React.createElement(Filter, { className: 'h-4 w-4 text-neutral-400' }),
-        React.createElement('select', {
-          value: selectedDomain,
-          onChange: (e) => setSelectedDomain(e.target.value),
-          className: 'px-2 py-1.5 text-xs bg-neutral-50 border rounded border-neutral-200 focus:outline-none'
-        },
-          ['All', 'Finance', 'Operations', 'Inventory', 'Users'].map(dom => 
-            React.createElement('option', { key: dom, value: dom }, dom)
-          )
-        )
+        React.createElement(Button, { variant: 'outline', size: 'sm', icon: Download, onClick: () => handleExport('CSV') }, 'Export CSV'),
+        React.createElement(Button, { variant: 'primary', size: 'sm', icon: Printer, onClick: () => handleExport('PDF') }, 'Print PDF')
       )
     ),
 
-    // Reports Table
+    // Report Generator Controls Card
     React.createElement(
       Card,
       null,
       React.createElement(
         CardHeader,
         null,
-        React.createElement(CardTitle, null, 'Available Consolidated Reports')
+        React.createElement(
+          'div',
+          null,
+          React.createElement(CardTitle, null, 'Report Generation Parameters'),
+          React.createElement(CardDescription, null, 'Configure period date range and domain scopes')
+        ),
+        React.createElement(Filter, { className: 'h-4 w-4 text-neutral-400' })
       ),
       React.createElement(
         CardContent,
         null,
         React.createElement(
-          Table,
+          'div',
+          { className: 'grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4' },
+          React.createElement(Select, {
+            label: 'Time Period',
+            value: dateRange,
+            onChange: (e) => setDateRange(e.target.value),
+            options: [
+              { label: 'Last 30 Days (Current Month)', value: '30D' },
+              { label: 'Last 90 Days (Quarter to Date)', value: '90D' },
+              { label: 'Year to Date (Fiscal 2026)', value: 'YTD' },
+              { label: 'Full Historical Audit', value: 'ALL' }
+            ]
+          }),
+          React.createElement(Select, {
+            label: 'Domain Scope',
+            value: department,
+            onChange: (e) => setDepartment(e.target.value),
+            options: [
+              { label: 'All Enterprise Domains (Consolidated)', value: 'ALL' },
+              { label: 'Finance & Billing', value: 'Finance' },
+              { label: 'Operations & Logistics', value: 'Operations' },
+              { label: 'Inventory Management', value: 'Inventory' },
+              { label: 'User Governance & RBAC', value: 'Users' }
+            ]
+          }),
+          React.createElement(Select, {
+            label: 'Report Schema Type',
+            value: reportType,
+            onChange: (e) => setReportType(e.target.value),
+            options: [
+              { label: 'Executive Financial Summary', value: 'FINANCIAL_SUMMARY' },
+              { label: 'Operational Fulfillment Ledger', value: 'OPERATIONAL_LEDGER' },
+              { label: 'Stock Valuation & Asset Audit', value: 'STOCK_AUDIT' },
+              { label: 'Security & Access Control Audit', value: 'SECURITY_AUDIT' }
+            ]
+          })
+        ),
+        React.createElement(
+          'div',
+          { className: 'flex justify-end pt-2' },
+          React.createElement(
+            Button,
+            {
+              variant: 'secondary',
+              onClick: handleGenerate,
+              loading: generating,
+              icon: RefreshCw
+            },
+            'Generate Consolidated Report'
+          )
+        )
+      )
+    ),
+
+    // Report Summary KPI Cards
+    React.createElement(
+      'div',
+      { className: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4' },
+      [
+        { label: 'Total Aggregated Volume', value: '₦47.82M', desc: 'Across Finance & Operations', color: 'text-emerald-600 bg-emerald-50' },
+        { label: 'Audited Micro-Frontends', value: '8 / 8 Active', desc: '100% telemetry healthy', color: 'text-blue-600 bg-blue-50' },
+        { label: 'Compliance Index', value: '99.8%', desc: 'SOC2 & RBAC compliant', color: 'text-indigo-600 bg-indigo-50' },
+        { label: 'Unresolved Discrepancies', value: '0 Items', desc: 'Clean ledger status', color: 'text-amber-600 bg-amber-50' }
+      ].map((k, idx) => React.createElement(
+        Card,
+        { key: idx, className: 'p-4' },
+        React.createElement('span', { className: 'text-xs font-bold text-neutral-500 uppercase tracking-wider block mb-1' }, k.label),
+        React.createElement('div', { className: 'text-2xl font-extrabold text-neutral-900' }, k.value),
+        React.createElement('span', { className: 'text-xs text-neutral-400 font-medium block mt-1' }, k.desc)
+      ))
+    ),
+
+    // Generated Report Table
+    React.createElement(
+      Card,
+      null,
+      React.createElement(
+        CardHeader,
+        null,
+        React.createElement(
+          'div',
+          null,
+          React.createElement(CardTitle, null, 'Domain Breakdown Summary'),
+          React.createElement(CardDescription, null, 'Cross-MFE aggregation without duplicate business logic')
+        ),
+        React.createElement(Badge, { variant: 'success', dot: true }, 'Live Synchronized')
+      ),
+      React.createElement(
+        Table,
+        { className: 'border-0 rounded-none shadow-none' },
+        React.createElement(
+          TableHeader,
           null,
           React.createElement(
-            TableHeader,
+            TableRow,
             null,
-            React.createElement(
-              TableRow,
-              null,
-              React.createElement(TableHeadCell, null, 'Report Title'),
-              React.createElement(TableHeadCell, null, 'Domain Area'),
-              React.createElement(TableHeadCell, null, 'Generated By'),
-              React.createElement(TableHeadCell, null, 'Date Created'),
-              React.createElement(TableHeadCell, null, 'File Size'),
-              React.createElement(TableHeadCell, null, 'Actions')
-            )
-          ),
-          React.createElement(
-            TableBody,
-            null,
-            filteredReports.map(r => React.createElement(
-              TableRow,
-              { key: r.id },
-              React.createElement(
-                TableCell,
-                null,
-                React.createElement('div', { className: 'flex items-center space-x-2' },
-                  React.createElement(FileText, { className: 'h-4 w-4 text-secondary-500' }),
-                  React.createElement('span', { className: 'font-semibold text-neutral-800 text-sm' }, r.title)
-                )
-              ),
-              React.createElement(
-                TableCell,
-                null,
-                React.createElement(Badge, { variant: 'primary', className: 'text-xxs px-1.5' }, r.domain)
-              ),
-              React.createElement(TableCell, null, r.generatedBy),
-              React.createElement(TableCell, null, r.date),
-              React.createElement(TableCell, null, r.size),
-              React.createElement(
-                TableCell,
-                null,
-                React.createElement(
-                  'div',
-                  { className: 'flex items-center space-x-2' },
-                  React.createElement(
-                    Button,
-                    { variant: 'outline', size: 'sm', className: 'text-xxs px-2 py-1', onClick: () => handleDownload(r.title, 'PDF') },
-                    React.createElement(Download, { className: 'h-3 w-3 mr-1' }),
-                    'PDF'
-                  ),
-                  React.createElement(
-                    Button,
-                    { variant: 'outline', size: 'sm', className: 'text-xxs px-2 py-1', onClick: () => handleDownload(r.title, 'CSV') },
-                    React.createElement(Download, { className: 'h-3 w-3 mr-1' }),
-                    'CSV'
-                  )
-                )
-              )
-            ))
+            React.createElement(TableHeadCell, null, 'Enterprise Domain'),
+            React.createElement(TableHeadCell, null, 'Processed Volume'),
+            React.createElement(TableHeadCell, null, 'Monetary Value'),
+            React.createElement(TableHeadCell, null, 'Growth Variance'),
+            React.createElement(TableHeadCell, { className: 'text-right' }, 'Audit Status')
           )
+        ),
+        React.createElement(
+          TableBody,
+          null,
+          reportData.map((row, idx) => React.createElement(
+            TableRow,
+            { key: idx },
+            React.createElement(TableCell, null, React.createElement('span', { className: 'font-bold text-xs text-neutral-900' }, row.domain)),
+            React.createElement(TableCell, null, React.createElement('span', { className: 'text-xs text-neutral-600' }, row.records)),
+            React.createElement(TableCell, null, React.createElement('span', { className: 'font-extrabold text-xs text-neutral-900' }, row.volume)),
+            React.createElement(
+              TableCell,
+              null,
+              React.createElement('span', { className: `text-xs font-bold ${row.variance.startsWith('+') ? 'text-emerald-600' : 'text-neutral-700'}` }, row.variance)
+            ),
+            React.createElement(
+              TableCell,
+              { className: 'text-right' },
+              React.createElement(Badge, { variant: 'success', dot: true }, row.status)
+            )
+          ))
         )
       )
     )
