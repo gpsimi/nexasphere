@@ -4,7 +4,9 @@
   "private": true,
   "description": "Consolidated micro-frontend repository for NexaSphere research prototype",
   "scripts": {
-    "dev": "turbo run dev --concurrency=15",
+    "start": "node start.js",
+    "dev": "node start.js",
+    "dev:turbo": "turbo run dev --concurrency=15",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "test": "node --test packages/auth/tests/auth.test.js packages/utils/tests/utils.test.js services/api/tests/api.test.js",
