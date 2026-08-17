@@ -314,3 +314,21 @@ The fourth objective addressed three related enterprise quality attributes:
 | **O3: Examine security, maintainability, and fault isolation** | Demonstrate error boundaries, RBAC permissions, and single-file change scopes | `MfeErrorBoundary` crash recovery, JWT auth, Experiment E diff | **Achieved** |
 | **O4: Evaluate performance and scalability** | Determine empirical runtime behaviour through quantitative tests | Tables 5.2.7, 5.2.8, 5.2.10, and Lighthouse measurements | **Achieved** |
 | **O5: Develop and evaluate a practical architectural model** | Produce a production-grade prototype for enterprise application development | 151 files, 13,493 LoC, Supabase integration, CI/CD pipeline | **Achieved** |
+
+---
+
+# CHAPTER 6: DISCUSSION, RECOMMENDATIONS & FUTURE WORK
+
+## 6.4.11 Investigation of Different Integration Strategies
+
+A comparative architectural evaluation of major frontend integration paradigms across key quality attributes and operational dimensions:
+
+| Evaluation Criterion | Runtime Composition (NexaSphere / Multi-Zones / Module Federation) | Build-Time Composition (NPM Packages / Monolith) | Server-Side Composition (Edge SSR / Tailor / SSI) | Web Components (Custom Elements / Shadow DOM) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Deployment Independence** | **High**: Each micro-frontend deploys autonomously to separate ports/origins with zero cross-app coordination | **Low**: Sub-module modifications require rebuilding and redeploying the entire host monolith bundle | **High**: Independent backend/edge servers render distinct fragments composed dynamically by a proxy gateway | **Medium to High**: Web component bundles can be independently hosted and loaded dynamically via CDN |
+| **Runtime Overhead** | **Low / Optimal**: Initial load transferred JS is 84.2 KB; remaining domain chunks load strictly on demand (sub-100ms warm navigation) | **Low Runtime / High Initial Load**: Full tree-shaking available, but monolithic initial payload is large (~380 KB) | **Low on Client / Higher on Edge**: Rapid First Contentful Paint (FCP), but edge reverse-proxy stitching and hydration add server latency | **Moderate to High**: Multiple framework runtimes (e.g. React + Vue in one page) risk duplicate dependency downloads |
+| **Fault & Execution Isolation** | **High**: Module-level error boundaries (`MfeErrorBoundary`) contain crashes; host shell & other MFEs remain 100% active | **Low / None**: An uncaught runtime exception in any sub-component crashes the whole single-page application tree | **High**: Edge reverse proxy can serve fallback HTML fragments or cached responses if an upstream service fails | **Very High (CSS/DOM) / Moderate (JS)**: Shadow DOM enforces strict style/DOM encapsulation, but global thread errors remain shared |
+| **Developer Experience (DX)** | **High**: Fast local incremental recompilations (~750ms), native framework tooling (Next.js 14 App Router, TypeScript), clean Git boundaries | **High Initially / Degrades with Scale**: Simple early DX, but large monorepo builds (48.5s) and dependency merge locks slow teams down | **Moderate / Complex**: Requires local reverse-proxy harnesses, template fragment stitching servers, and distributed streaming environments | **Moderate**: Requires implementing Custom Elements lifecycle hooks and bridging synthetic React/Vue event dispatching |
+| **Browser Compatibility & Standards** | **Universal (100%)**: Standard ES2020+ JavaScript, HTTP proxy rewrites, supported natively across Chrome, Safari, Firefox, Edge | **Universal (100%)**: Transpiled down to standard JavaScript compatible with all target browser baselines | **Universal (100%)**: Pure semantic HTML5 stream over HTTP/2; optimal for SEO and zero-JS progressive enhancement | **Modern Browsers (HTML5 Specs)**: Supported on all evergreen browsers via W3C Custom Elements and Shadow DOM v1 specs |
+
+> **Strategic Recommendation**: For large-scale enterprise SaaS requiring independent multi-team releases, strong fault isolation, and rich single-page responsiveness, **Runtime Composition (Next.js Multi-Zones)** offers the optimal balance of deployment agility, developer experience, and runtime efficiency.
