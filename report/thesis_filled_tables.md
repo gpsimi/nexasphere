@@ -52,6 +52,36 @@
 
 ---
 
+## 5.2.2 Micro-Frontend Loading Results
+
+A major objective of the implementation was to establish reliable runtime loading of independently deployed frontend applications. The remote-loading tests examined whether the application shell could identify, retrieve, initialize, and render each remote module across all 8 micro-frontend domains.
+
+| Remote Micro-Frontend | Port | Remote Entry Accessible | Module Resolved | Component Rendered | Result |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Dashboard** | `3001` | Yes | Yes | Yes | **Pass** |
+| **Administration (Users)** | `3002` | Yes | Yes | Yes | **Pass** |
+| **Finance** | `3003` | Yes | Yes | Yes | **Pass** |
+| **Operations** | `3004` | Yes | Yes | Yes | **Pass** |
+| **Inventory** | `3005` | Yes | Yes | Yes | **Pass** |
+| **Reports** | `3006` | Yes | Yes | Yes | **Pass** |
+| **Analytics** | `3007` | Yes | Yes | Yes | **Pass** |
+| **System Health** | `3008` | Yes | Yes | Yes | **Pass** |
+
+---
+
+## 5.2.3 Remote Failure Test Results (Experiment B)
+
+Failure isolation was tested by triggering a simulated runtime outage within an active micro-frontend. The objective was to confirm that a failure in one application domain does not cause the entire host shell or unrelated micro-frontends to crash.
+
+| Test ID | Failure Condition | Expected Behaviour | Actual Behaviour | Status |
+| :---: | :--- | :--- | :--- | :---: |
+| **FAIL-001** | Remote entry / server unavailable | Controlled fallback error banner displayed | Next.js Multi-Zone proxy renders fallback error UI | **Pass** |
+| **FAIL-002** | Remote module throws runtime error | Error boundary prevents full application failure | Caught by `MfeErrorBoundary`; displays recovery card with "Try Again" | **Pass** |
+| **FAIL-003** | API unavailable to one domain | Domain displays localized error without shell failure | `apiClient` catches network error; renders offline notice | **Pass** |
+| **FAIL-004** | Other remotes remain available after single failure | Unaffected remotes continue normal operations | Dashboard, Users, Inventory remain 100% operational while Finance is in error state | **Pass** |
+
+---
+
 ## 5.2.4 Authentication and Authorization Results
 
 | Test ID | Scenario | Expected Behaviour | Actual Behaviour | Status |
