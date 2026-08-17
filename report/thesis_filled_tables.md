@@ -275,6 +275,36 @@ $$\text{Pass Rate (\%)} = \left( \frac{\text{Passed Tests}}{\text{Total Tests Co
 
 ---
 
+## 5.3.4 Objective Four: Security, Maintainability, and Fault Isolation Evaluation
+
+The fourth objective addressed three related enterprise quality attributes:
+1. **Security**: Multi-tier authentication, 6-role RBAC authorization matrix, protected API routes, input sanitization, and SSL/TLS encrypted transport.
+2. **Maintainability**: Independent domain decomposition where business feature additions remain strictly scoped to the originating micro-frontend.
+3. **Fault Isolation**: Runtime boundaries ensuring failures in one remote do not cascade to the application shell or adjacent modules.
+
+### Quality Attribute Evaluation Matrix
+
+| Quality Area | Test / Empirical Evidence | Result | Evaluation |
+| :--- | :--- | :--- | :---: |
+| **Security** | Authentication & authorization tests (Section 5.2.4 & 5.2.11) | JWT issued with 8h expiry, 6-role RBAC permission matrix enforced, parameterized Prisma queries prevent SQL injection, SSL enforced (`sslmode=require`) | **Achieved** |
+| **Maintainability** | Independent domain structure & Experiment E change impact | Adding transaction `approvalStatus` and interactive approval toggles required modifying exactly 1 file in `apps/finance` (`App.tsx`) with 0 cross-MFE changes and 0 side effects | **Achieved** |
+| **Fault Isolation** | Remote failure tests & Experiment B (Section 5.2.3) | Simulated runtime crash in Finance contained by `MfeErrorBoundary`; Shell navigation and other 7 remotes operated with 100% availability | **Achieved** |
+
+---
+
+## 5.3.5 Objective Five: Practical Architectural Model for Large-Scale Web Applications
+
+| Model Component | Implementation in NexaSphere | Empirical Evidence | Verdict |
+| :--- | :--- | :--- | :---: |
+| **Domain-based Decomposition** | 8 distinct domain micro-frontends (Dashboard, Users, Finance, Operations, Inventory, Reports, Analytics, System Health) | 8 isolated Next.js applications on ports 3001–3008 | **Achieved** |
+| **Application-Shell Coordination** | Host Gateway Shell managing global navigation, RBAC session state, and proxy rewrites | Shell active on port 3000 proxying all domain paths | **Achieved** |
+| **Runtime Module Composition** | Multi-Zone composition without hard build-time couplings | Dynamic proxy rewrites in `apps/shell/next.config.js` | **Achieved** |
+| **Independent Development & Deploy** | Autonomous build and CI/CD pipelines per team | Matrix GitHub Actions workflow in `.github/workflows/ci.yml` | **Achieved** |
+| **Shared Technical Standards** | Centralized design system, auth tokens, and utilities | `@nexasphere/ui`, `@nexasphere/auth`, `@nexasphere/utils` | **Achieved** |
+| **Fault Containment** | Component-level error boundaries around each remote zone | `MfeErrorBoundary` crash recovery verified in Experiment B | **Achieved** |
+
+---
+
 ## 5.3.6 Consolidated Objective Evaluation
 
 | Objective | Expected Outcome | Evidence | Status |
