@@ -24,7 +24,9 @@ export default function Login() {
     
     try {
       await login(email, password);
-      router.push('/dashboard');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard';
+      }
     } catch (err) {
       setError(err.message || 'Invalid email or password.');
     } finally {

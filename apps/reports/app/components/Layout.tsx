@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@nexasphere/auth';
 import { EventBus } from '@nexasphere/utils';
 import { 
@@ -13,17 +12,17 @@ import {
 } from 'lucide-react';
 import { Button, Badge, StatusDot, Avatar } from '@nexasphere/ui';
 
-export const Layout = ({ children }) => {
+export const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout, hasPermission } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || '';
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const unsubscribe = EventBus.subscribe('NOTIFICATION_RECEIVED', (notif) => {
+    const unsubscribe = EventBus.subscribe('NOTIFICATION_RECEIVED', (notif: any) => {
       setNotifications(prev => [
         { 
           id: Date.now().toString(), 
@@ -47,7 +46,9 @@ export const Layout = ({ children }) => {
 
   const handleLogout = () => {
     logout();
-    router.push('/login');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   };
 
   const getBreadcrumbs = () => {
@@ -99,71 +100,91 @@ export const Layout = ({ children }) => {
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const breadcrumbs = getBreadcrumbs();
 
   return React.createElement(
     'div',
-    { className: 'flex h-screen bg-slate-50 overflow-hidden font-sans text-neutral-900' },
-    
-    // --- SIDEBAR (DESKTOP) ---
+    { className: 'min-h-screen flex bg-neutral-50 text-neutral-900 font-sans antialiased' },
+
+    // Mobile Backdrop
+    sidebarOpen && React.createElement('div', {
+      className: 'fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-xs md:hidden',
+      onClick: () => setSidebarOpen(false)
+    }),
+
+    // --- SIDEBAR ---
     React.createElement(
       'aside',
-      { className: 'hidden md:flex md:flex-shrink-0 flex-col w-64 bg-primary-700 text-white border-r border-primary-800 shadow-xl' },
-      
-      // Brand Logo Header
+      {
+        className: `fixed inset-y-0 left-0 z-50 w-64 bg-primary-900 text-white transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:inset-0 flex flex-col justify-between shadow-xl ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`
+      },
+      // Header Brand
       React.createElement(
         'div',
-        { className: 'flex items-center justify-between h-16 px-5 border-b border-primary-600/60 bg-primary-800/40' },
+        null,
         React.createElement(
           'div',
-          { className: 'flex items-center space-x-3' },
+          { className: 'h-16 flex items-center justify-between px-5 border-b border-primary-700/80 bg-primary-950/40' },
           React.createElement(
-            'div',
-            { className: 'h-9 w-9 rounded-xl bg-gradient-to-tr from-secondary-600 to-secondary-400 flex items-center justify-center shadow-md ring-1 ring-white/20' },
-            React.createElement(Sparkles, { className: 'h-5 w-5 text-white' })
+            'a',
+            { href: '/dashboard', className: 'flex items-center space-x-2.5 group cursor-pointer' },
+            React.createElement(
+              'div',
+              { className: 'h-9 w-9 rounded-xl bg-gradient-to-tr from-secondary-500 to-secondary-600 flex items-center justify-center text-white shadow-md shadow-secondary-500/20 group-hover:scale-105 transition-transform' },
+              React.createElement(Sparkles, { className: 'h-5 w-5' })
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('span', { className: 'text-base font-bold tracking-tight text-white block leading-tight' }, 'NexaSphere'),
+              React.createElement('span', { className: 'text-[10px] text-primary-200 font-medium tracking-wider uppercase block' }, 'Enterprise Console')
+            )
           ),
           React.createElement(
-            'div',
-            null,
-            React.createElement('span', { className: 'text-base font-extrabold tracking-tight text-white block leading-tight' }, 'NexaSphere'),
-            React.createElement('span', { className: 'text-[10px] text-primary-200 font-medium tracking-wider uppercase' }, 'Enterprise v1.0')
+            'button',
+            {
+              className: 'md:hidden p-1.5 text-primary-200 hover:text-white rounded-lg transition-colors cursor-pointer',
+              onClick: () => setSidebarOpen(false)
+            },
+            React.createElement(X, { className: 'h-5 w-5' })
           )
+        ),
+
+        // Navigation Sections
+        React.createElement(
+          'nav',
+          { className: 'flex-1 overflow-y-auto px-3.5 py-4 space-y-6' },
+          navSections.map((section, idx) => {
+            const visibleItems = section.items.filter(item => hasPermission(item.permission));
+            if (visibleItems.length === 0) return null;
+
+            return React.createElement(
+              'div',
+              { key: idx, className: 'space-y-1' },
+              React.createElement('h5', { className: 'px-3 text-[11px] font-bold text-primary-300/80 uppercase tracking-wider mb-2' }, section.label),
+              visibleItems.map(item => {
+                const active = pathname.startsWith(item.to);
+                return React.createElement(
+                  'a',
+                  {
+                    key: item.to,
+                    href: item.to,
+                    className: `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150 group cursor-pointer ${
+                      active 
+                        ? 'bg-secondary-500 text-white shadow-sm font-semibold' 
+                        : 'text-primary-100/90 hover:bg-primary-600/60 hover:text-white'
+                    }`
+                  },
+                  React.createElement(item.icon, { 
+                    className: `mr-3 h-4 w-4 transition-transform group-hover:scale-110 ${active ? 'text-white' : 'text-primary-200'}` 
+                  }),
+                  item.label
+                );
+              })
+            );
+          })
         )
-      ),
-
-      // Navigation Items
-      React.createElement(
-        'nav',
-        { className: 'flex-1 overflow-y-auto px-3.5 py-4 space-y-6' },
-        navSections.map((section, idx) => {
-          const visibleItems = section.items.filter(item => hasPermission(item.permission));
-          if (visibleItems.length === 0) return null;
-
-          return React.createElement(
-            'div',
-            { key: idx, className: 'space-y-1' },
-            React.createElement('h5', { className: 'px-3 text-[11px] font-bold text-primary-300/80 uppercase tracking-wider mb-2' }, section.label),
-            visibleItems.map(item => {
-              const active = pathname.startsWith(item.to);
-              return React.createElement(
-                Link,
-                {
-                  key: item.to,
-                  href: item.to,
-                  className: `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-150 group ${
-                    active 
-                      ? 'bg-secondary-500 text-white shadow-sm font-semibold' 
-                      : 'text-primary-100/90 hover:bg-primary-600/60 hover:text-white'
-                  }`
-                },
-                React.createElement(item.icon, { 
-                  className: `mr-3 h-4 w-4 transition-transform group-hover:scale-110 ${active ? 'text-white' : 'text-primary-200'}` 
-                }),
-                item.label
-              );
-            })
-          );
-        })
       ),
 
       // User Profile Footer
@@ -176,11 +197,11 @@ export const Layout = ({ children }) => {
           React.createElement(
             'div',
             { className: 'flex items-center space-x-2.5 min-w-0' },
-            React.createElement(Avatar, { name: user?.name || 'Godspower Admin', size: 'sm' }),
+            React.createElement(Avatar, { name: user?.name || 'Godspower Similoluwa', size: 'sm' }),
             React.createElement(
               'div',
               { className: 'min-w-0 flex-1' },
-              React.createElement('p', { className: 'text-xs font-bold text-white truncate leading-tight' }, user?.name || 'Administrator'),
+              React.createElement('p', { className: 'text-xs font-bold text-white truncate leading-tight' }, user?.name || 'Godspower Similoluwa'),
               React.createElement('p', { className: 'text-[10px] text-primary-200 font-medium truncate' }, user?.role || 'Admin')
             )
           ),
@@ -201,121 +222,126 @@ export const Layout = ({ children }) => {
     React.createElement(
       'div',
       { className: 'flex-1 flex flex-col min-w-0 overflow-hidden' },
-      
-      // Top Global Header
+
+      // Global Header
       React.createElement(
         'header',
-        { className: 'h-16 bg-white border-b border-slate-200/80 px-6 flex items-center justify-between flex-shrink-0 shadow-xs z-20' },
+        { className: 'h-16 bg-white border-b border-neutral-200/80 flex items-center justify-between px-4 sm:px-6 z-10' },
         
-        // Left: Mobile Toggle & Breadcrumbs
+        // Left: Hamburger + Breadcrumb
         React.createElement(
           'div',
-          { className: 'flex items-center space-x-4' },
+          { className: 'flex items-center space-x-3' },
           React.createElement(
             'button',
             {
-              onClick: () => setSidebarOpen(!sidebarOpen),
-              className: 'md:hidden p-2 rounded-lg text-neutral-600 hover:bg-neutral-100'
+              className: 'md:hidden p-2 text-neutral-600 hover:text-neutral-900 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer',
+              onClick: () => setSidebarOpen(true)
             },
             React.createElement(Menu, { className: 'h-5 w-5' })
           ),
           React.createElement(
-            'div',
-            { className: 'flex items-center space-x-2 text-xs text-neutral-500 font-medium' },
-            React.createElement('span', { className: 'text-neutral-400' }, 'NexaSphere'),
-            breadcrumbs.map((crumb, idx) => React.createElement(
-              React.Fragment,
-              { key: idx },
-              React.createElement(ChevronRight, { className: 'h-3.5 w-3.5 text-neutral-300' }),
-              React.createElement('span', { className: idx === breadcrumbs.length - 1 ? 'text-neutral-900 font-bold' : 'text-neutral-600' }, crumb)
+            'nav',
+            { className: 'hidden sm:flex items-center space-x-1.5 text-xs text-neutral-500' },
+            React.createElement('span', { className: 'font-semibold text-neutral-900' }, 'NexaSphere'),
+            getBreadcrumbs().map((crumb, i) => (
+              React.createElement(React.Fragment, { key: i },
+                React.createElement(ChevronRight, { className: 'h-3.5 w-3.5 text-neutral-400' }),
+                React.createElement('span', { className: i === getBreadcrumbs().length - 1 ? 'text-secondary-600 font-medium' : 'hover:text-neutral-700' }, crumb)
+              )
             ))
           )
         ),
 
-        // Right: Status Badge & Notification Center
+        // Right: Search + System Health Pill + Notification Drawer
         React.createElement(
           'div',
-          { className: 'flex items-center space-x-4' },
+          { className: 'flex items-center space-x-3 sm:space-x-4' },
           
-          // Cluster Status Pill
+          // System Health Indicator Badge
           React.createElement(
-            'div',
-            { className: 'hidden sm:flex items-center space-x-2 px-3 py-1 bg-success-50 border border-success-200/60 rounded-full text-xs font-semibold text-success-700' },
-            React.createElement(StatusDot, { status: 'online' }),
-            React.createElement('span', null, 'Cluster Healthy • 8 MFEs Active')
+            'a',
+            {
+              href: '/system-health',
+              className: 'hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-full bg-success-50 border border-success-200 text-xs font-semibold text-success-700 hover:bg-success-100 transition-colors cursor-pointer'
+            },
+            React.createElement(StatusDot, { status: 'healthy' }),
+            'Cluster Healthy'
           ),
 
-          // Notification Bell
+          // Notifications Bell Button
           React.createElement(
             'div',
             { className: 'relative' },
             React.createElement(
               'button',
               {
-                onClick: () => setShowNotifications(!showNotifications),
-                className: 'relative p-2 rounded-lg text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer'
+                className: 'relative p-2 text-neutral-600 hover:text-neutral-900 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer',
+                onClick: () => setShowNotifications(!showNotifications)
               },
               React.createElement(Bell, { className: 'h-5 w-5' }),
               unreadCount > 0 && React.createElement(
                 'span',
-                { className: 'absolute top-1.5 right-1.5 h-4 w-4 bg-secondary-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center ring-2 ring-white animate-pulse' },
-                unreadCount
+                { className: 'absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-secondary-500 ring-2 ring-white' }
               )
             ),
 
-            // Notifications Dropdown Menu
+            // Notification Popover Dropdown
             showNotifications && React.createElement(
               'div',
-              { className: 'absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-neutral-200 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150' },
+              { className: 'absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-dropdown border border-neutral-200/80 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150' },
               React.createElement(
                 'div',
-                { className: 'px-4 py-3 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50' },
-                React.createElement('h4', { className: 'text-xs font-bold text-neutral-900 uppercase tracking-wider' }, 'Notifications'),
-                React.createElement(
-                  'button',
-                  {
-                    onClick: () => setNotifications(prev => prev.map(n => ({ ...n, read: true }))),
-                    className: 'text-xs font-medium text-secondary-600 hover:text-secondary-700 cursor-pointer'
-                  },
-                  'Mark all read'
-                )
+                { className: 'p-4 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/50' },
+                React.createElement('h4', { className: 'text-xs font-bold text-neutral-900 uppercase tracking-wider' }, 'Live System Feed'),
+                React.createElement(Badge, { variant: 'secondary', size: 'xs' }, `${unreadCount} new`)
               ),
               React.createElement(
                 'div',
                 { className: 'max-h-72 overflow-y-auto divide-y divide-neutral-100' },
-                notifications.length === 0 ? React.createElement(
-                  'div',
-                  { className: 'p-6 text-center text-xs text-neutral-500' },
-                  'No notifications'
-                ) : notifications.map(n => React.createElement(
-                  'div',
-                  { key: n.id, className: `p-3.5 flex items-start space-x-3 transition-colors ${n.read ? 'bg-white' : 'bg-secondary-50/40'}` },
-                  React.createElement(
-                    'div',
-                    { className: 'mt-0.5' },
-                    n.type === 'Success' 
-                      ? React.createElement(CheckCircle2, { className: 'h-4 w-4 text-success-500' })
-                      : n.type === 'Warning'
-                      ? React.createElement(AlertTriangle, { className: 'h-4 w-4 text-warning-500' })
-                      : React.createElement(Info, { className: 'h-4 w-4 text-secondary-500' })
-                  ),
-                  React.createElement(
-                    'div',
-                    { className: 'flex-1 min-w-0' },
-                    React.createElement('p', { className: 'text-xs text-neutral-900 font-medium leading-snug' }, n.message),
-                    React.createElement('span', { className: 'text-[10px] text-neutral-400 mt-1 block' }, n.time)
-                  )
-                ))
+                notifications.length === 0 
+                  ? React.createElement('p', { className: 'p-4 text-center text-xs text-neutral-500' }, 'No active notifications')
+                  : notifications.map(n => (
+                    React.createElement(
+                      'div',
+                      { key: n.id, className: `p-3.5 hover:bg-neutral-50 transition-colors flex items-start space-x-3 ${!n.read ? 'bg-secondary-50/20' : ''}` },
+                      n.type === 'Success' && React.createElement(CheckCircle2, { className: 'h-4 w-4 text-success-500 flex-shrink-0 mt-0.5' }),
+                      n.type === 'Information' && React.createElement(Info, { className: 'h-4 w-4 text-secondary-500 flex-shrink-0 mt-0.5' }),
+                      n.type === 'Warning' && React.createElement(AlertTriangle, { className: 'h-4 w-4 text-warning-500 flex-shrink-0 mt-0.5' }),
+                      n.type === 'Error' && React.createElement(XCircle, { className: 'h-4 w-4 text-error-500 flex-shrink-0 mt-0.5' }),
+                      React.createElement(
+                        'div',
+                        { className: 'flex-1 min-w-0' },
+                        React.createElement('p', { className: 'text-xs text-neutral-800 leading-snug font-medium' }, n.message),
+                        React.createElement('span', { className: 'text-[10px] text-neutral-400 mt-1 block font-mono' }, n.time)
+                      )
+                    )
+                  ))
+              ),
+              React.createElement(
+                'div',
+                { className: 'p-2.5 border-t border-neutral-100 bg-neutral-50 text-center' },
+                React.createElement(
+                  'button',
+                  {
+                    className: 'text-[11px] font-semibold text-secondary-600 hover:text-secondary-700 cursor-pointer',
+                    onClick: () => {
+                      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                      setShowNotifications(false);
+                    }
+                  },
+                  'Mark all as read'
+                )
               )
             )
           )
         )
       ),
 
-      // Page Content Viewport
+      // Main Viewport Container
       React.createElement(
         'main',
-        { className: 'flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50' },
+        { className: 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-neutral-50' },
         children
       )
     )
