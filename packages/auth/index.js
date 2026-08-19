@@ -18,29 +18,38 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AuthProvider] Initializing session authentication...');
     try {
       if (typeof window !== 'undefined') {
         const storedUser = localStorage.getItem('nexasphere_user');
         const storedToken = localStorage.getItem('nexasphere_token');
         const isLoggedOut = localStorage.getItem('nexasphere_logged_out');
 
+        console.log('[AuthProvider] LocalStorage read:', { storedUser, storedToken, isLoggedOut });
+
         if (storedUser && storedToken) {
-          setUser(JSON.parse(storedUser));
+          const parsed = JSON.parse(storedUser);
+          console.log('[AuthProvider] Restored active session:', parsed);
+          setUser(parsed);
         } else if (isLoggedOut === 'true') {
+          console.log('[AuthProvider] User is explicitly logged out, blocking auto-login.');
           setUser(null);
         } else {
+          console.log('[AuthProvider] No session found, performing default user fallback...');
           localStorage.setItem('nexasphere_user', JSON.stringify(DEFAULT_USER));
           localStorage.setItem('nexasphere_token', 'demo_jwt_token_godspower_admin');
           setUser(DEFAULT_USER);
         }
       }
     } catch (e) {
-      console.warn('LocalStorage not available');
+      console.warn('[AuthProvider] LocalStorage not available:', e);
     } finally {
+      console.log('[AuthProvider] Setting loading state to false.');
       setLoading(false);
     }
 
     const unsubscribe = EventBus.subscribe('unauthorized', () => {
+      console.log('[AuthProvider] Received unauthorized event, clearing session.');
       setUser(null);
     });
 

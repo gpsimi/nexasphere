@@ -20,9 +20,22 @@ export const EventBus = {
 // API Client Helper
 const getApiUrl = () => {
   if (typeof window !== 'undefined') {
-    return window.__NEXT_PUBLIC_API_URL__ || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+    if (window.__NEXT_PUBLIC_API_URL__) return window.__NEXT_PUBLIC_API_URL__;
+    
+    // Guard process.env to prevent browser crashes
+    try {
+      if (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
+      }
+    } catch (e) {}
+    
+    return 'http://localhost:4000/api';
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  
+  if (typeof process !== 'undefined' && process.env && process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  return 'http://localhost:4000/api';
 };
 
 export const apiClient = {
