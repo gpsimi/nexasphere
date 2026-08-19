@@ -13,13 +13,21 @@ import {
 import { Button, Badge, StatusDot, Avatar } from '@nexasphere/ui';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, logout, hasPermission, isAuthenticated, loading } = useAuth();
   const rawPathname = usePathname();
   const pathname = rawPathname || '';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated && pathname !== '/login') {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    }
+  }, [isAuthenticated, loading, pathname]);
 
   useEffect(() => {
     const unsubscribe = EventBus.subscribe('NOTIFICATION_RECEIVED', (notif: any) => {
@@ -100,6 +108,18 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   ];
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  if (loading) {
+    return React.createElement(
+      'div',
+      { className: 'h-screen w-screen flex items-center justify-center bg-neutral-50 text-neutral-500 font-medium text-sm' },
+      'Synchronizing session...'
+    );
+  }
+
+  if (!isAuthenticated && pathname !== '/login') {
+    return null;
+  }
 
   return React.createElement(
     'div',
