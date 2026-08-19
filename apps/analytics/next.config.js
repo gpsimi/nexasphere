@@ -1,5 +1,5 @@
 module.exports = {
-  assetPrefix: 'http://localhost:3007',
+  assetPrefix: '/analytics',
   transpilePackages: ['@nexasphere/ui', '@nexasphere/auth', '@nexasphere/utils'],
   eslint: { ignoreDuringBuilds: true },
 };

@@ -1,5 +1,5 @@
 module.exports = {
-  assetPrefix: 'http://localhost:3008',
+  assetPrefix: '/system-health',
   transpilePackages: ['@nexasphere/ui', '@nexasphere/auth', '@nexasphere/utils'],
   eslint: { ignoreDuringBuilds: true },
 };
