@@ -1,4 +1,4 @@
-const sharedConfig = require('@nexasphere/config/tailwind.config');
+const sharedConfig = require('../../packages/config/tailwind.config.js');
 
 module.exports = {
   ...sharedConfig,
@@ -10,4 +10,4 @@ module.exports = {
     "../../packages/ui/index.js",
     "../../packages/ui/utils.js"
   ],
-}
+};
