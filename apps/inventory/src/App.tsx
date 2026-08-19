@@ -14,12 +14,21 @@ import {
 import { apiClient, EventBus } from '@nexasphere/utils';
 
 export default function App() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-  const [reorderModal, setReorderModal] = useState(null);
+  const [reorderModal, setReorderModal] = useState<any>(null);
   const [reorderQty, setReorderQty] = useState('50');
+  const [addProductOpen, setAddProductOpen] = useState(false);
+  const [productForm, setProductForm] = useState({
+    name: '',
+    sku: '',
+    category: 'Construction',
+    stock: '100',
+    reorderLevel: '20',
+    unitPrice: '5000'
+  });
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -51,7 +60,7 @@ export default function App() {
     fetchProducts();
   }, []);
 
-  const handleReorder = async (e) => {
+  const handleReorder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reorderModal) return;
 
@@ -82,6 +91,38 @@ export default function App() {
     setReorderModal(null);
   };
 
+  const handleAddProduct = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productForm.name || !productForm.sku) return;
+
+    const newProd = {
+      id: Date.now().toString(),
+      name: productForm.name,
+      sku: productForm.sku,
+      category: productForm.category,
+      stock: parseInt(productForm.stock, 10) || 0,
+      reorderLevel: parseInt(productForm.reorderLevel, 10) || 10,
+      unitPrice: parseFloat(productForm.unitPrice) || 0,
+      status: (parseInt(productForm.stock, 10) || 0) > (parseInt(productForm.reorderLevel, 10) || 10) ? 'Healthy' : 'Low Stock'
+    };
+
+    setProducts(prev => [newProd, ...prev]);
+    setAddProductOpen(false);
+    setProductForm({
+      name: '',
+      sku: '',
+      category: 'Construction',
+      stock: '100',
+      reorderLevel: '20',
+      unitPrice: '5000'
+    });
+
+    EventBus.publish('NOTIFICATION_RECEIVED', {
+      message: `Product added to catalog: ${newProd.name} (${newProd.sku})`,
+      type: 'Success'
+    });
+  };
+
   const lowStockItems = products.filter(p => p.stock <= p.reorderLevel);
   const totalValuation = products.reduce((acc, p) => acc + (p.stock * p.unitPrice), 0);
 
@@ -109,7 +150,7 @@ export default function App() {
         'div',
         { className: 'flex items-center space-x-3' },
         React.createElement(Button, { variant: 'outline', size: 'sm', onClick: fetchProducts, icon: RefreshCw }, 'Refresh'),
-        React.createElement(Button, { variant: 'primary', size: 'sm', onClick: () => alert('Mock add product modal'), icon: Plus }, 'Add Product')
+        React.createElement(Button, { variant: 'primary', size: 'sm', onClick: () => setAddProductOpen(true), icon: Plus }, 'Add Product')
       )
     ),
 
@@ -293,6 +334,66 @@ export default function App() {
           { className: 'flex justify-end space-x-3 pt-4 border-t border-neutral-100' },
           React.createElement(Button, { type: 'button', variant: 'outline', onClick: () => setReorderModal(null) }, 'Cancel'),
           React.createElement(Button, { type: 'submit', variant: 'primary' }, 'Confirm Purchase Order')
+        )
+      )
+    ),
+
+    // Add Product Modal
+    React.createElement(
+      Modal,
+      {
+        isOpen: addProductOpen,
+        onClose: () => setAddProductOpen(false),
+        title: 'Register New Product in Catalog',
+        description: 'Add a new inventory SKU with automated reorder thresholds'
+      },
+      React.createElement(
+        'form',
+        { onSubmit: handleAddProduct, className: 'space-y-4' },
+        React.createElement(Input, {
+          label: 'Product Name',
+          placeholder: 'e.g. Industrial Aluminum Profiles',
+          value: productForm.name,
+          onChange: (e) => setProductForm({ ...productForm, name: e.target.value }),
+          required: true
+        }),
+        React.createElement(Input, {
+          label: 'SKU Identifier',
+          placeholder: 'e.g. SKU-ALU-005',
+          value: productForm.sku,
+          onChange: (e) => setProductForm({ ...productForm, sku: e.target.value }),
+          required: true
+        }),
+        React.createElement(
+          'div',
+          { className: 'grid grid-cols-2 gap-3' },
+          React.createElement(Input, {
+            label: 'Initial Stock (Units)',
+            type: 'number',
+            value: productForm.stock,
+            onChange: (e) => setProductForm({ ...productForm, stock: e.target.value }),
+            required: true
+          }),
+          React.createElement(Input, {
+            label: 'Reorder Level Threshold',
+            type: 'number',
+            value: productForm.reorderLevel,
+            onChange: (e) => setProductForm({ ...productForm, reorderLevel: e.target.value }),
+            required: true
+          })
+        ),
+        React.createElement(Input, {
+          label: 'Unit Price (₦)',
+          type: 'number',
+          value: productForm.unitPrice,
+          onChange: (e) => setProductForm({ ...productForm, unitPrice: e.target.value }),
+          required: true
+        }),
+        React.createElement(
+          'div',
+          { className: 'flex justify-end space-x-3 pt-4 border-t border-neutral-100' },
+          React.createElement(Button, { type: 'button', variant: 'outline', onClick: () => setAddProductOpen(false) }, 'Cancel'),
+          React.createElement(Button, { type: 'submit', variant: 'primary' }, 'Save Product to Inventory')
         )
       )
     )

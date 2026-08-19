@@ -43,9 +43,21 @@ export default function Login() {
     { label: 'Platform Admin', email: 'system@nexasphere.com', role: 'Platform', desc: 'Telemetry & Health' }
   ];
 
-  const handleQuickSelect = (roleEmail) => {
+  const handleQuickSelect = async (roleEmail) => {
     setEmail(roleEmail);
     setPassword('password123');
+    setError(null);
+    setLoading(true);
+    try {
+      await login(roleEmail, 'password123');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard';
+      }
+    } catch (err) {
+      setError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return React.createElement(

@@ -227,7 +227,7 @@ export default function App() {
             )
           ))
         )
-      ) : (
+      ) : React.createElement(
         Table,
         { className: 'border-0 rounded-none shadow-none' },
         React.createElement(
