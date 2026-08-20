@@ -113,7 +113,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return React.createElement(
     'div',
-    { className: 'min-h-screen flex bg-neutral-50 text-neutral-900 font-sans antialiased relative w-full' },
+    { className: 'h-screen flex bg-neutral-50 text-neutral-900 font-sans antialiased relative w-full overflow-hidden' },
 
     showContent && React.createElement(
       React.Fragment,
@@ -129,7 +129,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       React.createElement(
         'aside',
         {
-          className: `fixed inset-y-0 left-0 z-50 w-64 bg-primary-900 text-white transform transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:inset-0 flex flex-col justify-between shadow-xl ${
+          className: `fixed inset-y-0 left-0 z-50 w-64 bg-primary-900 text-white transform transition-transform duration-200 ease-in-out md:translate-x-0 md:sticky md:top-0 md:h-screen shrink-0 flex flex-col justify-between shadow-xl ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`
         },
@@ -235,12 +235,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       // --- MAIN CONTENT WRAPPER ---
       React.createElement(
         'div',
-        { className: 'flex-1 flex flex-col min-w-0 overflow-hidden' },
+        { className: 'flex-1 flex flex-col min-w-0 h-screen overflow-hidden' },
 
         // Global Header
         React.createElement(
           'header',
-          { className: 'h-16 bg-white border-b border-neutral-200/80 flex items-center justify-between px-4 sm:px-6 z-10' },
+          { className: 'h-16 bg-white border-b border-neutral-200/80 flex items-center justify-between px-4 sm:px-6 z-10 shrink-0' },
           
           // Left: Hamburger + Breadcrumb
           React.createElement(
