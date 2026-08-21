@@ -1,5 +1,5 @@
 module.exports = {
-  assetPrefix: process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'http://localhost:3001',
+  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://nexasphere-dashboard.vercel.app' : 'http://localhost:3001',
   transpilePackages: ['@nexasphere/ui', '@nexasphere/auth', '@nexasphere/utils'],
   eslint: { ignoreDuringBuilds: true },
 
