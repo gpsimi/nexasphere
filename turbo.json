@@ -15,7 +15,19 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "out/**"]
+      "outputs": ["dist/**", ".next/**", "out/**"],
+      "env": [
+        "VERCEL_URL",
+        "NEXT_PUBLIC_API_URL",
+        "DASHBOARD_URL",
+        "USERS_URL",
+        "FINANCE_URL",
+        "OPERATIONS_URL",
+        "INVENTORY_URL",
+        "REPORTS_URL",
+        "ANALYTICS_URL",
+        "SYSTEM_HEALTH_URL"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
