@@ -1,4 +1,5 @@
 module.exports = {
+  skipTrailingSlashRedirect: true,
   transpilePackages: ['@nexasphere/ui', '@nexasphere/auth', '@nexasphere/utils'],
   eslint: {
     ignoreDuringBuilds: true,
