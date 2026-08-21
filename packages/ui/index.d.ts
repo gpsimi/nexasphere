@@ -24,6 +24,7 @@ export const Select: React.ForwardRefExoticComponent<SelectProps & React.RefAttr
 export const Card: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>>;
+export const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>>;
 export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 export const CardFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;
 
@@ -49,3 +50,28 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Alert: React.FC<AlertProps>;
 
 export const Spinner: React.FC<React.SVGProps<SVGSVGElement>>;
+
+export interface StatusDotProps {
+  status?: 'online' | 'offline' | 'healthy' | 'unhealthy' | string;
+  className?: string;
+}
+export const StatusDot: React.FC<StatusDotProps>;
+
+export interface AvatarProps {
+  name?: string;
+  role?: string;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+export const Avatar: React.FC<AvatarProps>;
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  maxWidth?: string;
+}
+export const Modal: React.FC<ModalProps>;

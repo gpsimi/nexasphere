@@ -104,3 +104,20 @@ export const apiClient = {
     return this.request(endpoint, { ...options, method: 'DELETE' });
   }
 };
+
+export function formatCurrency(amount, currency = 'NGN') {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (typeof num !== 'number' || isNaN(num)) return '₦0.00';
+  return `₦${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function formatDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
