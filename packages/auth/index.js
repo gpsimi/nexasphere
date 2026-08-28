@@ -31,14 +31,9 @@ export const AuthProvider = ({ children }) => {
           const parsed = JSON.parse(storedUser);
           console.log('[AuthProvider] Restored active session:', parsed);
           setUser(parsed);
-        } else if (isLoggedOut === 'true') {
-          console.log('[AuthProvider] User is explicitly logged out, blocking auto-login.');
-          setUser(null);
         } else {
-          console.log('[AuthProvider] No session found, performing default user fallback...');
-          localStorage.setItem('nexasphere_user', JSON.stringify(DEFAULT_USER));
-          localStorage.setItem('nexasphere_token', 'demo_jwt_token_godspower_admin');
-          setUser(DEFAULT_USER);
+          console.log('[AuthProvider] No active session found. Requiring user authentication.');
+          setUser(null);
         }
       }
     } catch (e) {
