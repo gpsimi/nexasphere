@@ -174,7 +174,7 @@ export default function App() {
       Alert,
       {
         variant: 'warning',
-        title: 'MSc Thesis Fault Isolation Sandbox (Experiment B)',
+        title: '',
         action: React.createElement(
           Button,
           {
